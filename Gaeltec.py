@@ -1613,7 +1613,9 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         # 2️⃣ Individual sheets - only display_columns
         for name, df in all_data.items():
             sheet_name = sanitize_sheet_name(name)
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
+            if col in sheet_df.columns:
+                sheet_df.drop(columns=col, inplace=True)
+        sheet_df.to_excel(writer, sheet_name=sheet_name, index=False)
 
         # 3️⃣ Combined Data sheet - keep all columns (including Total & Original)
         combined_df = prepare_df(filtered_df) if not filtered_df.empty else pd.DataFrame()
