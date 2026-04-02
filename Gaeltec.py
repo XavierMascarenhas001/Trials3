@@ -762,6 +762,7 @@ CV31 = {
 
 CV8 = {
     "Tighten existing stay.": "CV8",
+    "Plumb single pole.": "CV8",
     "Erect/Replace stay above ground only.": "CV8",
     "Erect/Replace stay complete including block or driven type anchor": "CV8",
     "Erect/Replace stay complete including rock type anchor": "CV8",
