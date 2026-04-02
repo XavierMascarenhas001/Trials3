@@ -28,6 +28,7 @@ from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import numbers
 import plotly.graph_objects as go
+import numpy as np
 # ---- Formatting & logos (after all sheets written) ----
 
 # --- Page config for wide layout ---
