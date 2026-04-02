@@ -1182,6 +1182,7 @@ convert_to_miles = st.checkbox("Convert Equipment/Conductor Length to Miles")
 
 categories = [
     ("CV7_erect", CV7_erect, "Quantity"),
+    ("CV7_erect_lv", CV7_erect_lv, "Quantity"),
     ("CV7_recover", CV7_recover, "Quantity"),
     ("CV7 Tx", CV7_Tx, "Quantity"),
     ("transformer", transformer, "Quantity"),
