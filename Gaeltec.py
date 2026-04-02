@@ -1011,7 +1011,7 @@ selected_team, filtered_df = multiselect_filter(filtered_df, 'team_name', "Selec
 # --- Standardize Date Column ---
 # -------------------------------
 # Convert any existing datetime column to just date (no hours/minutes/seconds)
-if 'datetouse' in filtered_df.columns:
+if 'datetouse_dt' in filtered_df.columns:
     filtered_df['datetouse_dt'] = pd.to_datetime(filtered_df['datetouse'], errors='coerce').dt.normalize()
     # For display purposes in tables, charts, etc.
     filtered_df['datetouse_display'] = filtered_df['datetouse_dt'].dt.strftime("%d/%m/%Y")
