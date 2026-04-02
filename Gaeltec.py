@@ -1556,7 +1556,7 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         return df[display_columns].fillna("")
 
     # -----------------------------
-    # Individual sheets (bar chart data)
+    # Individual sheets (bar chart drilldowns)
     # -----------------------------
     all_data = {}
     for name, df in drilldown_dict.items():
@@ -1610,12 +1610,12 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         if not summary_df.empty:
             summary_df.to_excel(writer, sheet_name="Project_Summary", index=False)
 
-        # 2️⃣ Individual sheets
+        # 2️⃣ Individual sheets - only display_columns
         for name, df in all_data.items():
             sheet_name = sanitize_sheet_name(name)
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        # 3️⃣ Combined Data sheet
+        # 3️⃣ Combined Data sheet - keep all columns (including Total & Original)
         if not combined_df.empty:
             combined_df.to_excel(writer, sheet_name="Combined_Data", index=False)
 
