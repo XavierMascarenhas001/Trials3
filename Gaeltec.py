@@ -1549,7 +1549,7 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     output = io.BytesIO()
 
     # -----------------------------
-    # Helper: enforce display columns
+    # Helper: enforce display columns for individual sheets
     # -----------------------------
     def prepare_df(df):
         df = df.copy()
@@ -1569,12 +1569,12 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         all_data["CV8"] = prepare_df(cv8_df)
 
     # -----------------------------
-    # Combined_Data: use full filtered_df
+    # Combined_Data: all filtered information
     # -----------------------------
     combined_df = filtered_df.copy()
 
     # -----------------------------
-    # Build Project Summary using Combined_Data
+    # Build Project Summary using Combined_Data totals
     # -----------------------------
     summary_rows = []
     if not filtered_df.empty:
@@ -1583,22 +1583,22 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         for project in all_projects:
             row = {"project": project}
 
-            # Per-category values from bar-chart sheets
+            # Per-category values (for chart purposes)
             for name, df in all_data.items():
                 proj_df = df[df['project'] == project]
-
                 if name in ["CV31", "CV8"]:
                     val = proj_df['pole'].nunique() if 'pole' in proj_df.columns else 0
                 else:
-                    val = pd.to_numeric(proj_df['qsub'], errors='coerce').fillna(0).sum() if 'qsub' in proj_df.columns else 0
+                    val = pd.to_numeric(proj_df['qsub'], errors='coerce').fillna(0).sum() \
+                        if 'qsub' in proj_df.columns else 0
                 row[name] = val
 
             # Total / Original from full Combined_Data
             proj_combined = combined_df[combined_df['project'] == project]
-            row["Total"] = pd.to_numeric(proj_combined['qsub'], errors='coerce').fillna(0).sum() \
-                if 'qsub' in proj_combined.columns else 0
-            row["Original"] = pd.to_numeric(proj_combined['qcvi'], errors='coerce').fillna(0).sum() \
-                if 'qcvi' in proj_combined.columns else 0
+            row["Total"] = pd.to_numeric(proj_combined['Total'], errors='coerce').fillna(0).sum() \
+                if 'Total' in proj_combined.columns else 0
+            row["Original"] = pd.to_numeric(proj_combined['Original'], errors='coerce').fillna(0).sum() \
+                if 'Original' in proj_combined.columns else 0
 
             summary_rows.append(row)
 
@@ -1611,7 +1611,7 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     # -----------------------------
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
 
-        # 1️⃣ Project Summary FIRST
+        # 1️⃣ Project Summary
         if not summary_df.empty:
             summary_df.to_excel(writer, sheet_name="Project_Summary", index=False)
 
@@ -1620,7 +1620,7 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
             sheet_name = sanitize_sheet_name(name)
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        # 3️⃣ Combined data LAST
+        # 3️⃣ Combined Data sheet
         if not combined_df.empty:
             combined_df.to_excel(writer, sheet_name="Combined_Data", index=False)
 
