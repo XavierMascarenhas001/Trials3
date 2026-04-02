@@ -1556,48 +1556,48 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
                 df[col] = ""
         return df[display_columns].fillna("")
 
+    # Combine all datasets
     all_data = {}
 
-    # CV7 + CV31 drilldowns
+    # CV7 + others
     for name, df in drilldown_dict.items():
         if not df.empty:
             all_data[name] = prepare_df(df)
 
-    # CV8 drilldown
+    # CV8
     if cv8_df is not None and not cv8_df.empty:
         all_data["CV8"] = prepare_df(cv8_df)
 
-    # -----------------------------
     # Build Project Summary
-    # -----------------------------
     summary_rows = []
 
     if not filtered_df.empty:
         all_projects = filtered_df['project'].dropna().unique()
+
+        # Prepare Combined_Data for summing
+        combined_df = pd.concat(all_data.values(), ignore_index=True) if all_data else pd.DataFrame()
+        
         for project in all_projects:
             row = {"project": project}
-            total_qsub = 0
-            total_qcvi = 0
 
-            # Calculate totals over **all items**, for Total and Original
-            proj_all_df = filtered_df[filtered_df['project'] == project]
-            total_qsub = pd.to_numeric(proj_all_df.get('qsub', 0), errors='coerce').fillna(0).sum()
-            total_qcvi = pd.to_numeric(proj_all_df.get('qcvi', 0), errors='coerce').fillna(0).sum()
-            row["Total"] = total_qsub
-            row["Original"] = total_qcvi
-
-            # Now add per-category values for CV7/CV31/CV8
+            # Per-category values
             for name, df in all_data.items():
                 proj_df = df[df['project'] == project]
 
-                if name == "CV31":
-                    val = proj_df['pole'].nunique()
-                elif name == "CV8":
-                    val = proj_df['pole'].nunique()
+                if name in ["CV31", "CV8"]:
+                    val = proj_df['pole'].nunique() if 'pole' in proj_df.columns else 0
                 else:
-                    val = pd.to_numeric(proj_df.get('qsub', 0), errors='coerce').fillna(0).sum()
-
+                    val = pd.to_numeric(proj_df['qsub'], errors='coerce').fillna(0).sum() if 'qsub' in proj_df.columns else 0
                 row[name] = val
+
+            # Total / Original from Combined_Data
+            if not combined_df.empty:
+                proj_combined = combined_df[combined_df['project'] == project]
+                row["Total"] = pd.to_numeric(proj_combined.get('Total', 0), errors='coerce').fillna(0).sum()
+                row["Original"] = pd.to_numeric(proj_combined.get('Original', 0), errors='coerce').fillna(0).sum()
+            else:
+                row["Total"] = 0
+                row["Original"] = 0
 
             summary_rows.append(row)
 
@@ -1605,22 +1605,21 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     else:
         summary_df = pd.DataFrame()
 
-    # -----------------------------
     # Write Excel
-    # -----------------------------
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        # 1️⃣ Project Summary
+
+        # 1️⃣ Project Summary FIRST
         if not summary_df.empty:
             summary_df.to_excel(writer, sheet_name="Project_Summary", index=False)
 
-        # 2️⃣ Individual drilldown sheets (CV7, CV31, CV8)
+        # 2️⃣ Individual sheets
         for name, df in all_data.items():
             sheet_name = sanitize_sheet_name(name)
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        # 3️⃣ Combined Data: **all filtered items**
-        combined_df = prepare_df(filtered_df)
-        combined_df.to_excel(writer, sheet_name="Combined_Data", index=False)
+        # 3️⃣ Combined data LAST
+        if not combined_df.empty:
+            combined_df.to_excel(writer, sheet_name="Combined_Data", index=False)
 
     return output.getvalue()
 
