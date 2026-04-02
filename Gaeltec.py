@@ -1306,7 +1306,7 @@ for cat_name, keys, y_label in categories:
 # --------------------------------------------------
 # MAIN CV8 FUNCTION
 # --------------------------------------------------
-def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover):
+def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover, CV8):
 
     # -------------------------------
     # SAFETY CHECK
@@ -1355,10 +1355,13 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover):
     cv7_poles = filtered_df.loc[filtered_df['item'].isin(cv7_items), 'pole'].dropna().unique()
 
     # -------------------------------
-    # FILTER CV8 POLES
+    # FILTER CV8 POLES (ONLY ITEMS IN CV8 MAPPING)
     # -------------------------------
+    CV8_items = set(CV8.keys())
     cv8_df = filtered_df.loc[
-        (~filtered_df['pole'].isin(cv7_poles)) & (filtered_df['pole'].notna())
+        (~filtered_df['pole'].isin(cv7_poles)) &      # exclude CV7 poles
+        (filtered_df['pole'].notna()) &              # ignore NaN poles
+        (filtered_df['item'].isin(CV8_items))        # only include CV8 items
     ].copy()
 
     # -------------------------------
@@ -1404,7 +1407,11 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover):
     # DRILL-DOWN TABLE
     # -------------------------------
     with st.expander("🔍 CV8 Drill-down: Unique Poles Details", expanded=False):
-        display_cols = ['project', 'segmentcode', 'segmentdesc', 'pole', 'item', 'comment', 'plan1_display', 'done_display']
+        display_cols = [
+            'project', 'segmentcode', 'segmentdesc',
+            'pole', 'item', 'comment',
+            'plan1_display', 'done_display'
+        ]
         display_cols = [c for c in display_cols if c in cv8_df.columns]
 
         display_df = cv8_df[display_cols].drop_duplicates(subset='pole').sort_values('pole')
@@ -1412,7 +1419,6 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover):
         st.write(f"**Total unique poles displayed:** {display_df['pole'].nunique()}")
 
     return cv8_df, cv8_summary
-
 # --------------------------------------------------
 # CALL FUNCTION
 # --------------------------------------------------
