@@ -1549,56 +1549,41 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     output = io.BytesIO()
 
     # -----------------------------
-    # Helper: enforce display columns + numeric totals
+    # Helper: enforce display columns
     # -----------------------------
-    def prepare_export_df(df):
+    def prepare_df(df):
         df = df.copy()
         for col in display_columns:
             if col not in df.columns:
                 df[col] = ""
-        # Ensure Total and Original exist
-        if 'Total' not in df.columns:
-            if 'adj_value' in df.columns:
-                df['Total'] = pd.to_numeric(df['adj_value'], errors='coerce').fillna(0)
-            elif 'pole' in df.columns:
-                df['Total'] = 1  # count each pole as 1
-            else:
-                df['Total'] = 0
-        if 'Original' not in df.columns:
-            if 'qcvi' in df.columns:
-                df['Original'] = pd.to_numeric(df['qcvi'], errors='coerce').fillna(0)
-            else:
-                df['Original'] = 0
-        return df[display_columns + ['Total', 'Original']]
+        return df[display_columns].fillna("")
 
     # -----------------------------
-    # Combine all datasets
+    # Combine all bar-chart datasets for individual sheets
     # -----------------------------
     all_data = {}
-
     for name, df in drilldown_dict.items():
         if not df.empty:
-            all_data[name] = prepare_export_df(df)
-
+            all_data[name] = prepare_df(df)
     if cv8_df is not None and not cv8_df.empty:
-        all_data["CV8"] = prepare_export_df(cv8_df)
+        all_data["CV8"] = prepare_df(cv8_df)
 
     # -----------------------------
-    # Prepare Combined_Data
+    # Combined_Data: use full filtered_df
     # -----------------------------
-    combined_df = pd.concat(all_data.values(), ignore_index=True) if all_data else pd.DataFrame()
+    combined_df = filtered_df.copy()
 
     # -----------------------------
-    # Build Project Summary
+    # Build Project Summary using Combined_Data
     # -----------------------------
     summary_rows = []
-
     if not filtered_df.empty:
         all_projects = filtered_df['project'].dropna().unique()
+
         for project in all_projects:
             row = {"project": project}
 
-            # Per-category values
+            # Per-category values from bar-chart sheets
             for name, df in all_data.items():
                 proj_df = df[df['project'] == project]
 
@@ -1608,14 +1593,12 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
                     val = pd.to_numeric(proj_df['qsub'], errors='coerce').fillna(0).sum() if 'qsub' in proj_df.columns else 0
                 row[name] = val
 
-            # Total / Original from Combined_Data
-            if not combined_df.empty:
-                proj_combined = combined_df[combined_df['project'] == project]
-                row["Total"] = pd.to_numeric(proj_combined['Total'], errors='coerce').fillna(0).sum()
-                row["Original"] = pd.to_numeric(proj_combined['Original'], errors='coerce').fillna(0).sum()
-            else:
-                row["Total"] = 0
-                row["Original"] = 0
+            # Total / Original from full Combined_Data
+            proj_combined = combined_df[combined_df['project'] == project]
+            row["Total"] = pd.to_numeric(proj_combined['qsub'], errors='coerce').fillna(0).sum() \
+                if 'qsub' in proj_combined.columns else 0
+            row["Original"] = pd.to_numeric(proj_combined['qcvi'], errors='coerce').fillna(0).sum() \
+                if 'qcvi' in proj_combined.columns else 0
 
             summary_rows.append(row)
 
