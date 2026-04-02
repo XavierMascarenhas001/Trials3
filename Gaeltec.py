@@ -878,7 +878,7 @@ column_rename_map = {
 export_columns = [
     'Output','comment', 'item', 'Quantity_original','qcvi','Quantity_used', 'pole', 'Date',
     'District', 'project', 'Project Manager', 'Circuit', 'Segment',
-    'team lider', 'PID', 'sourcefile'
+    'team lider', 'PID','total', 'orig', 'sourcefile'
 ]
 
 # --- Gradient background ---
@@ -1542,7 +1542,7 @@ def sanitize_sheet_name(name: str) -> str:
 
 display_columns = [
     'shire', 'project', 'segmentcode', 'segmentdesc', 'comment',
-    'pole', 'qty', 'qcvi', 'qsub', 'plan1', 'done', 'item'
+    'pole', 'qty', 'qcvi', 'qsub', 'plan1', 'done', 'item','total','orig'
 ]
 
 def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
