@@ -959,9 +959,9 @@ if master_file:
             base_df['datetouse_dt'] = pd.NaT
     elif date_source == "Done Only (done)":
         if 'done' in base_df.columns:
-            base_df['done'] = pd.to_datetime(base_df['done'], errors='coerce').dt.normalize()
+            base_df['datetouse_dt'] = pd.to_datetime(base_df['done'], errors='coerce').dt.normalize()
         else:
-            base_df['done'] = pd.NaT
+            base_df['datetouse_dt'] = pd.NaT
 
     # Normalize numeric columns
     for col in ['total', 'orig']:
@@ -1022,13 +1022,13 @@ else:
 
 filter_type = st.sidebar.selectbox(
     "Filter by Date",
-    ["Single Day", "Week", "Month", "Year", "Custom Range", "Missing"]
+    ["Single Day", "Week", "Month", "Year", "Custom Range", "Unplanned"]
 )
 
 date_range_str = ""
-if filter_type == "Missing":
+if filter_type == "Unplanned":
     filtered_df = filtered_df[filtered_df['datetouse_dt'].isna()]
-    date_range_str = "Missing"
+    date_range_str = "Unplanned"
 else:
     filtered_df = filtered_df[filtered_df['datetouse_dt'].notna()]
 
@@ -1226,7 +1226,7 @@ for cat_name, keys, y_label in categories:
     sub_df = filtered_df[mask]
 
     # --- Normalize dates in sub_df ---
-    for col in ['datetouse', 'plan1', 'done']:
+    for col in ['datetouse_dt', 'plan1', 'done']:
         if col in sub_df.columns:
             sub_df[col] = pd.to_datetime(sub_df[col], errors='coerce').dt.strftime("%d/%m/%Y")
             sub_df[col] = sub_df[col].fillna("Missing")
@@ -1440,7 +1440,7 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_H, CV7_erect_lv, CV7_reco
     # -------------------------------
     # DATE NORMALISATION
     # -------------------------------
-    date_cols = ['datetouse', 'plan1', 'done']
+    date_cols = ['datetouse_dt', 'plan1', 'done']
     existing_cols = [col for col in date_cols if col in cv8_df.columns]
 
     if existing_cols:
