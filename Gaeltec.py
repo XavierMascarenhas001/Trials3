@@ -1407,7 +1407,7 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover):
     ].copy()
 
     # -------------------------------
-    # ASSIGN CV8 TYPE (FAST)
+    # ASSIGN CV8 TYPE (FAST, VECTORISED)
     # -------------------------------
     cv8_df['CV8_type'] = np.where(
         cv8_df['project'].astype(str).str.upper().str.contains('LV', na=False),
@@ -1425,7 +1425,7 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover):
     )
 
     # -------------------------------
-    # PLOT
+    # PLOT BAR CHART
     # -------------------------------
     plot_bar_chart(
         cv8_summary,
@@ -1434,6 +1434,59 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover):
         y_col="Total",
         y_label="Unique Poles"
     )
+
+    # -------------------------------
+    # DATE NORMALISATION
+    # -------------------------------
+    date_cols = ['datetouse', 'plan1', 'done']
+    existing_cols = [col for col in date_cols if col in cv8_df.columns]
+
+    if existing_cols:
+        formatted_dates = (
+            cv8_df[existing_cols]
+            .apply(pd.to_datetime, errors='coerce')
+            .apply(lambda col: col.dt.strftime("%d/%m/%Y"))
+            .fillna("Missing")
+        )
+        formatted_dates.columns = [col + '_display' for col in existing_cols]
+        cv8_df = pd.concat([cv8_df, formatted_dates], axis=1)
+
+    # Fill missing date columns
+    for col in set(date_cols) - set(existing_cols):
+        cv8_df[col + '_display'] = "Missing"
+
+    # -------------------------------
+    # DRILL-DOWN TABLE
+    # -------------------------------
+    with st.expander("🔍 CV8 Drill-down: Unique Poles Details", expanded=False):
+
+        display_cols = [
+            'project', 'segmentcode', 'segmentdesc',
+            'pole', 'item', 'comment',
+            'plan1_display', 'done_display'
+        ]
+        display_cols = [c for c in display_cols if c in cv8_df.columns]
+
+        display_df = (
+            cv8_df.loc[:, display_cols]
+            .drop_duplicates(subset='pole')
+            .sort_values('pole')
+        )
+
+        st.dataframe(display_df, use_container_width=True)
+        st.write(f"**Total unique poles displayed:** {display_df['pole'].nunique()}")
+
+    return cv8_df, cv8_summary
+
+# --------------------------------------------------
+# CALL FUNCTION
+# --------------------------------------------------
+cv8_df, cv8_summary = run_cv8_analysis(
+    filtered_df,
+    CV7_erect,
+    CV7_erect_lv,
+    CV7_recover
+)
 
     # -------------------------------
     # DATE NORMALISATION (VECTORISED)
