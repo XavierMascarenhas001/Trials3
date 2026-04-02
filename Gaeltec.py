@@ -1620,6 +1620,98 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         if not combined_df.empty:
             combined_df.to_excel(writer, sheet_name="Combined_Data", index=False)
 
+
+    # -----------------------
+    # ---- Formatting + Images ----
+    # -----------------------
+    from openpyxl import load_workbook
+    from openpyxl.styles import Font, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    from openpyxl.drawing.image import Image as XLImage
+
+    IMG_HEIGHT = 120
+    IMG_WIDTH_SMALL = 120
+    IMG_WIDTH_LARGE = IMG_WIDTH_SMALL * 3
+
+    header_font = Font(bold=True, size=16)
+    header_fill = PatternFill(start_color="00CCFF", end_color="00CCFF", fill_type="solid")
+
+    thin_side = Side(style="thin")
+    medium_side = Side(style="medium")
+    thick_side = Side(style="thick")
+
+    light_grey_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+    white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    red_font = Font(color="FF0000")
+    green_font = Font(color="00AA00")
+    black_font = Font(color="000000")
+
+    wb = load_workbook(output)
+    for ws in wb.worksheets:
+        ws.row_dimensions[1].height = 90
+
+        # Images
+        img1 = XLImage("Images/GaeltecImage.png")
+        img1.width = IMG_WIDTH_SMALL
+        img1.height = IMG_HEIGHT
+        img1.anchor = "B1"
+
+        img2 = XLImage("Images/SPEN.png")
+        img2.width = IMG_WIDTH_LARGE
+        img2.height = IMG_HEIGHT
+        img2.anchor = "A1"
+
+        ws.add_image(img1)
+        ws.add_image(img2)
+
+        max_col = ws.max_column
+
+        # Header formatting
+        for col_idx, cell in enumerate(ws[2], start=1):
+            cell.font = header_font
+            cell.fill = header_fill
+            ws.column_dimensions[get_column_letter(col_idx)].width = 60 if col_idx == 1 else 20
+            cell.border = Border(
+                left=thick_side if col_idx == 1 else medium_side,
+                right=thick_side if col_idx == max_col else medium_side,
+                top=thick_side,
+                bottom=thick_side
+            )
+
+        # Identify QCVI column
+        qcvi_col_idx = None
+        for col_idx, cell in enumerate(ws[2], start=1):
+            if cell.value and str(cell.value).lower() == "qcvi":
+                qcvi_col_idx = col_idx
+                break
+
+        # Row formatting
+        for row_idx in range(3, ws.max_row + 1):
+            fill = light_grey_fill if row_idx % 2 == 1 else white_fill
+            for col_idx in range(1, ws.max_column + 1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                cell.fill = fill
+                cell.border = Border(
+                    left=thin_side,
+                    right=thin_side,
+                    top=thin_side,
+                    bottom=thin_side
+                )
+
+                if qcvi_col_idx and col_idx == qcvi_col_idx and cell.value not in ("", None):
+                    try:
+                        val = float(cell.value)
+                        if val > 0:
+                            cell.font = green_font
+                        elif val < 0:
+                            cell.font = red_font
+                        else:
+                            cell.font = black_font
+                    except ValueError:
+                        cell.font = black_font
+
+    wb.save(output)
+    output.seek(0)
     return output.getvalue()
 
 # -------------------------------
