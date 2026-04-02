@@ -1616,6 +1616,7 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
         # 3️⃣ Combined Data sheet - keep all columns (including Total & Original)
+        combined_df = prepare_df(filtered_df) if not filtered_df.empty else pd.DataFrame()
         if not combined_df.empty:
             combined_df.to_excel(writer, sheet_name="Combined_Data", index=False)
 
