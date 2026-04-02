@@ -867,7 +867,7 @@ column_rename_map = {
     "segmentcode": "Circuit",
     "datetouse_display": "Date",
     "qty": "Quantity_original",
-    "qvci":"qvci",
+    "qcvi":"qcvi",
     "qsub": "Quantity_used",
     "segmentdesc": "Segment",
     "shire": "District",
@@ -1542,7 +1542,7 @@ def sanitize_sheet_name(name: str) -> str:
 
 display_columns = [
     'shire', 'project', 'segmentcode', 'segmentdesc', 'comment',
-    'pole', 'qty', 'qvci', 'qsub', 'plan1', 'done', 'item'
+    'pole', 'qty', 'qcvi', 'qsub', 'plan1', 'done', 'item'
 ]
 
 def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
@@ -1577,14 +1577,14 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         for project in all_projects:
             row = {"project": project}
             total_qsub = 0
-            total_qvci = 0
+            total_qcvi = 0
 
             # Calculate totals over **all items**, for Total and Original
             proj_all_df = filtered_df[filtered_df['project'] == project]
             total_qsub = pd.to_numeric(proj_all_df.get('qsub', 0), errors='coerce').fillna(0).sum()
-            total_qvci = pd.to_numeric(proj_all_df.get('qvci', 0), errors='coerce').fillna(0).sum()
+            total_qcvi = pd.to_numeric(proj_all_df.get('qcvi', 0), errors='coerce').fillna(0).sum()
             row["Total"] = total_qsub
-            row["Original"] = total_qvci
+            row["Original"] = total_qcvi
 
             # Now add per-category values for CV7/CV31/CV8
             for name, df in all_data.items():
