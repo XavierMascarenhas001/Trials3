@@ -1649,21 +1649,6 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
             for col_idx in range(1, ws.max_column + 1):
                 ws.cell(row=row_idx, column=col_idx).fill = fill
 
-        # Optional images
-        try:
-            img1 = XLImage("Images/GaeltecImage.png")
-            img1.width = IMG_WIDTH_SMALL
-            img1.height = IMG_HEIGHT
-            img1.anchor = "B1"
-            ws.add_image(img1)
-
-            img2 = XLImage("Images/SPEN.png")
-            img2.width = IMG_WIDTH_LARGE
-            img2.height = IMG_HEIGHT
-            img2.anchor = "A1"
-            ws.add_image(img2)
-        except Exception:
-            pass  # ignore if images missing
 
     # -----------------------------
     # 2️⃣ Individual Sheets
