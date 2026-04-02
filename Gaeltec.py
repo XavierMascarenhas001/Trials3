@@ -1548,35 +1548,53 @@ display_columns = [
 def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     output = io.BytesIO()
 
-    # Helper: enforce display columns
-    def prepare_df(df):
+    # -----------------------------
+    # Helper: enforce display columns + numeric totals
+    # -----------------------------
+    def prepare_export_df(df):
         df = df.copy()
         for col in display_columns:
             if col not in df.columns:
                 df[col] = ""
-        return df[display_columns].fillna("")
+        # Ensure Total and Original exist
+        if 'Total' not in df.columns:
+            if 'adj_value' in df.columns:
+                df['Total'] = pd.to_numeric(df['adj_value'], errors='coerce').fillna(0)
+            elif 'pole' in df.columns:
+                df['Total'] = 1  # count each pole as 1
+            else:
+                df['Total'] = 0
+        if 'Original' not in df.columns:
+            if 'qcvi' in df.columns:
+                df['Original'] = pd.to_numeric(df['qcvi'], errors='coerce').fillna(0)
+            else:
+                df['Original'] = 0
+        return df[display_columns + ['Total', 'Original']]
 
+    # -----------------------------
     # Combine all datasets
+    # -----------------------------
     all_data = {}
 
-    # CV7 + others
     for name, df in drilldown_dict.items():
         if not df.empty:
-            all_data[name] = prepare_df(df)
+            all_data[name] = prepare_export_df(df)
 
-    # CV8
     if cv8_df is not None and not cv8_df.empty:
-        all_data["CV8"] = prepare_df(cv8_df)
+        all_data["CV8"] = prepare_export_df(cv8_df)
 
+    # -----------------------------
+    # Prepare Combined_Data
+    # -----------------------------
+    combined_df = pd.concat(all_data.values(), ignore_index=True) if all_data else pd.DataFrame()
+
+    # -----------------------------
     # Build Project Summary
+    # -----------------------------
     summary_rows = []
 
     if not filtered_df.empty:
         all_projects = filtered_df['project'].dropna().unique()
-
-        # Prepare Combined_Data for summing
-        combined_df = pd.concat(all_data.values(), ignore_index=True) if all_data else pd.DataFrame()
-        
         for project in all_projects:
             row = {"project": project}
 
@@ -1593,8 +1611,8 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
             # Total / Original from Combined_Data
             if not combined_df.empty:
                 proj_combined = combined_df[combined_df['project'] == project]
-                row["Total"] = pd.to_numeric(proj_combined.get('Total', 0), errors='coerce').fillna(0).sum()
-                row["Original"] = pd.to_numeric(proj_combined.get('Original', 0), errors='coerce').fillna(0).sum()
+                row["Total"] = pd.to_numeric(proj_combined['Total'], errors='coerce').fillna(0).sum()
+                row["Original"] = pd.to_numeric(proj_combined['Original'], errors='coerce').fillna(0).sum()
             else:
                 row["Total"] = 0
                 row["Original"] = 0
@@ -1605,7 +1623,9 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     else:
         summary_df = pd.DataFrame()
 
+    # -----------------------------
     # Write Excel
+    # -----------------------------
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
 
         # 1️⃣ Project Summary FIRST
@@ -1622,7 +1642,6 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
             combined_df.to_excel(writer, sheet_name="Combined_Data", index=False)
 
     return output.getvalue()
-
 
 # -------------------------------
 # DOWNLOAD BUTTON
