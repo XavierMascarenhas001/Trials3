@@ -1456,7 +1456,13 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover, CV8):
 # --------------------------------------------------
 # CALL FUNCTION
 # --------------------------------------------------
-cv8_df, cv8_summary = run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover)
+cv8_df, cv8_summary = run_cv8_analysis(
+    filtered_df,
+    CV7_erect,
+    CV7_erect_lv,
+    CV7_recover,
+    CV8  # pass your CV8 dictionary here
+)
 
 
 
