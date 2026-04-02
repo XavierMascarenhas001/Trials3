@@ -811,8 +811,6 @@ CV8 = {
     "Additional extra over for additional earthing excavated, laid & backfilled": "CV8",
     "Install Earth Electrode within cable trench": "CV8",
     "Erect 11kV Cable Termination ( incorporating surge arrestors )": "CV8",
-    "Replace / Fit safety or warning sign, number plates or name plate": "CV8",
-    "Barbed Wire Wrap ACD (or Enhanced) single pole or stay - Replace/Repair": "CV8",
     "Erect 33kV Cable Termination ( incorporating surge arrestors )": "CV8",
     "Steelwork bonding repair / fit": "CV8",
     "Replace LV/HV/Earth guard missing / damaged": "CV8",
