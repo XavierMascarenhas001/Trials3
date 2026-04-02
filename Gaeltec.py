@@ -1592,8 +1592,8 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
 
             # Sum Total & Original from Combined_Data for this project
             proj_combined = combined_df[combined_df['project'] == project]
-            row["Total"] = proj_combined['Total'].sum() if 'Total' in proj_combined.columns else 0
-            row["Original"] = proj_combined['Original'].sum() if 'Original' in proj_combined.columns else 0
+            row["total"] = proj_combined['total'].sum() if 'total' in proj_combined.columns else 0
+            row["orig"] = proj_combined['orig'].sum() if 'orig' in proj_combined.columns else 0
 
             summary_rows.append(row)
 
