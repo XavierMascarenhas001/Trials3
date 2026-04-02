@@ -597,9 +597,11 @@ file_project_mapping = {
 CV7_erect = {
     "Erect Single HV/EHV Pole, up to and including 12 metre pole":"CV7 HV pole", 
     "Erect Single HV/EHV Pole, up to and including 12 metre pole.":"CV7  HV pole",
-    "Erect Section Structure 'H' HV/EHV Pole, up to and including 12 metre pole.":"CV7 HV pole"
 }
 
+CV7_erect_H = {
+    "Erect Section Structure 'H' HV/EHV Pole, up to and including 12 metre pole.":"CV7 HV pole"
+}
 
 CV7_erect_lv = {
     "Erect LV Structure Single Pole, up to and including 12 metre pole" :"CV7 LV pole",
@@ -847,6 +849,8 @@ summary_items = [
 
 categories = [
     ("CV7_erect", CV7_erect, "Quantity"),
+    ("CV7_erect_H", CV7_erect_H, "Quantity"),
+    ("CV7_erect_LV", CV7_erect_lv, "Quantity"),
     ("CV7_recover", CV7_recover, "Quantity"),
     ("CV7 Tx", CV7_Tx, "Quantity"),
     ("transformer", transformer, "Quantity"),
@@ -1180,6 +1184,7 @@ convert_to_miles = st.checkbox("Convert Equipment/Conductor Length to Miles")
 
 categories = [
     ("CV7_erect", CV7_erect, "Quantity"),
+    ("CV7_erect_H", CV7_erect_H, "Quantity"),
     ("CV7_erect_lv", CV7_erect_lv, "Quantity"),
     ("CV7_recover", CV7_recover, "Quantity"),
     ("CV7 Tx", CV7_Tx, "Quantity"),
@@ -1346,7 +1351,7 @@ for cat_name, keys, y_label in categories:
 # --------------------------------------------------
 # MAIN CV8 FUNCTION
 # --------------------------------------------------
-def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover, CV8):
+def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_H, CV7_erect_lv, CV7_recover, CV8):
     # SAFETY CHECK
     if filtered_df is None or filtered_df.empty:
         st.error("Data not loaded into filtered_df")
@@ -1384,7 +1389,7 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover, CV8):
     # COLLECT CV7 POLES
     # -------------------------------
     cv7_items = set().union(*[
-        cat.keys() for cat in [CV7_erect, CV7_erect_lv, CV7_recover] if cat
+        cat.keys() for cat in [CV7_erect, CV7_erect_H ,CV7_erect_lv, CV7_recover] if cat
     ])
     cv7_poles = filtered_df.loc[filtered_df['item'].isin(cv7_items), 'pole'].dropna().unique()
 
@@ -1451,6 +1456,7 @@ def run_cv8_analysis(filtered_df, CV7_erect, CV7_erect_lv, CV7_recover, CV8):
 cv8_df, cv8_summary = run_cv8_analysis(
     filtered_df,
     CV7_erect,
+    CV7_erect_H,
     CV7_erect_lv,
     CV7_recover,
     CV8
