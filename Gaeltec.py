@@ -1221,13 +1221,12 @@ for cat_name, keys, y_label in categories:
     sub_df = filtered_df[mask]
 
     # --- Normalize dates in sub_df ---
-    # --- Normalize dates ---
     for col in ['datetouse', 'plan1', 'done']:
         if col in sub_df.columns:
             sub_df[col] = pd.to_datetime(sub_df[col], errors='coerce').dt.strftime("%d/%m/%Y")
             sub_df[col] = sub_df[col].fillna("Missing")
 
-    # Clean numeric columns
+    # --- Clean numeric columns ---
     sub_df['qvci_clean'] = pd.to_numeric(sub_df['qvci'] if 'qvci' in sub_df.columns else pd.Series(0, index=sub_df.index), errors='coerce').fillna(0)
     sub_df['qsub_clean'] = pd.to_numeric(sub_df['qsub'] if 'qsub' in sub_df.columns else pd.Series(0, index=sub_df.index), errors='coerce').fillna(0)
     sub_df["multiplier"] = 1
@@ -1237,19 +1236,16 @@ for cat_name, keys, y_label in categories:
 
     # --- Aggregate ---
     if cat_name == "CV31":
-        # Deduplicate poles first
         sub_df_unique_poles = sub_df.drop_duplicates(subset=['pole'])
         bar_data = sub_df_unique_poles.groupby('mapped').agg(
             Total=('pole', 'count'),
             Variation=('qvci_clean', 'sum')
         ).reset_index()
-
     else:
         bar_data = sub_df.groupby('mapped').agg(
             Total=('adj_value', 'sum'),
             Variation=('qvci_clean', 'sum')
         ).reset_index()
-        
 
     bar_data.rename(columns={'mapped':'Mapped'}, inplace=True)
     bar_data['PositiveVar'] = bar_data['Variation'].clip(lower=0)
@@ -1262,6 +1258,7 @@ for cat_name, keys, y_label in categories:
         y_axis_label = "Length (Miles)"
 
     grand_total = bar_data['Total'].sum()
+
     # Add to bar data dict
     bar_data_dict[cat_name] = bar_data
 
@@ -1269,30 +1266,36 @@ for cat_name, keys, y_label in categories:
     drilldown_dict[cat_name] = sub_df.copy()
     st.subheader(f"🔹 {cat_name} — Total: {grand_total:,.2f}")
 
-    # Plot bar chart
-    fig = go.Figure()
-    fig.add_bar(
-        x=bar_data['Mapped'], y=bar_data['Total'],
-        name="Quantity", marker_color="#4C78A8", text=bar_data['Total'],
-        texttemplate='%{y:,.1f}', textposition='outside'
-    )
-    fig.add_bar(
-        x=bar_data['Mapped'], y=bar_data['PositiveVar'],
-        name="Positive Variation", marker_color="green"
-    )
-    fig.add_bar(
-        x=bar_data['Mapped'], y=bar_data['NegativeVar'],
-        name="Negative Variation", marker_color="red"
-    )
-    fig.update_layout(
-        barmode='relative', title=f"{cat_name} Overview",
-        xaxis_title="Mapping", yaxis_title=y_axis_label,
-        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-        yaxis=dict(gridcolor='rgba(255,255,255,0.3)')
-    )
-    st.plotly_chart(fig, use_container_width=True, height=500)
+    # --- Plot bar chart only if there is data ---
+    if grand_total > 0:
+        fig = go.Figure()
+        fig.add_bar(
+            x=bar_data['Mapped'], y=bar_data['Total'],
+            name="Quantity", marker_color="#4C78A8", text=bar_data['Total'],
+            texttemplate='%{y:,.1f}', textposition='outside'
+        )
+        fig.add_bar(
+            x=bar_data['Mapped'], y=bar_data['PositiveVar'],
+            name="Positive Variation", marker_color="green"
+        )
+        fig.add_bar(
+            x=bar_data['Mapped'], y=bar_data['NegativeVar'],
+            name="Negative Variation", marker_color="red"
+        )
+        fig.update_layout(
+            barmode='relative',
+            title=f"{cat_name} Overview",
+            xaxis_title="Mapping",
+            yaxis_title=y_axis_label,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            yaxis=dict(gridcolor='rgba(255,255,255,0.3)')
+        )
+        st.plotly_chart(fig, use_container_width=True, height=500)
+    else:
+        st.info(f"No data available for {cat_name}, chart not displayed.")
 
-    # Collapsible drill-down
+    # --- Collapsible drill-down ---
     with st.expander("🔍 Click to explore more information", expanded=False):
         st.subheader("Select Mapping to Drill-down:")
         cols = st.columns(3)
@@ -1304,33 +1307,33 @@ for cat_name, keys, y_label in categories:
                     st.session_state[f"selected_{cat_name}"] = mapping_value
                     st.rerun()
 
-    selected_mapping = st.session_state.get(f"selected_{cat_name}")
-    if selected_mapping:
-        st.subheader(f"Details for: **{selected_mapping}**")
-        if st.button("❌ Clear Selection", key=f"clear_{cat_name}"):
-            del st.session_state[f"selected_{cat_name}"]
-            st.rerun()
+        selected_mapping = st.session_state.get(f"selected_{cat_name}")
+        if selected_mapping:
+            st.subheader(f"Details for: **{selected_mapping}**")
+            if st.button("❌ Clear Selection", key=f"clear_{cat_name}"):
+                del st.session_state[f"selected_{cat_name}"]
+                st.rerun()
 
-        selected_rows = sub_df[sub_df['mapped'] == selected_mapping].copy()
-        selected_rows.columns = selected_rows.columns.str.strip().str.lower()
-        display_columns = [
-            'shire', 'project', 'segmentcode', 'segmentdesc', 'comment',
-            'pole', 'qty', 'qvci', 'qsub', 'plan1', 'done', 'item'
-        ]
-        display_columns = [c for c in display_columns if c in selected_rows.columns]
-        display_df = selected_rows[display_columns].copy()
-        display_df.rename(columns={
-            'shire': 'District',
-            'segmentcode':'Circuit',
-            'segmentdesc': 'Segment',
-            'qty': 'Quantity',
-            'qsub': 'Quantity Used'
-        }, inplace=True)
-        st.write(f"**Total records:** {len(display_df)}")
+            selected_rows = sub_df[sub_df['mapped'] == selected_mapping].copy()
+            selected_rows.columns = selected_rows.columns.str.strip().str.lower()
+            display_columns = [
+                'shire', 'project', 'segmentcode', 'segmentdesc', 'comment',
+                'pole', 'qty', 'qvci', 'qsub', 'plan1', 'done', 'item'
+            ]
+            display_columns = [c for c in display_columns if c in selected_rows.columns]
+            display_df = selected_rows[display_columns].copy()
+            display_df.rename(columns={
+                'shire': 'District',
+                'segmentcode':'Circuit',
+                'segmentdesc': 'Segment',
+                'qty': 'Quantity',
+                'qsub': 'Quantity Used'
+            }, inplace=True)
+            st.write(f"**Total records:** {len(display_df)}")
 
-        # Display table
-        st.write("🔹 Information Resumed:")
-        st.dataframe(display_df, use_container_width=True)
+            # Display table
+            st.write("🔹 Information Resumed:")
+            st.dataframe(display_df, use_container_width=True)
 
 
 # --------------------------------------------------
