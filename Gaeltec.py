@@ -959,9 +959,9 @@ if master_file:
             base_df['datetouse_dt'] = pd.NaT
     elif date_source == "Done Only (done)":
         if 'done' in base_df.columns:
-            base_df['datetouse_dt'] = pd.to_datetime(base_df['done'], errors='coerce').dt.normalize()
+            base_df['done'] = pd.to_datetime(base_df['done'], errors='coerce').dt.normalize()
         else:
-            base_df['datetouse_dt'] = pd.NaT
+            base_df['done'] = pd.NaT
 
     # Normalize numeric columns
     for col in ['total', 'orig']:
