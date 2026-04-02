@@ -19,7 +19,7 @@ from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_COLOR_INDEX
 from collections import OrderedDict
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Border, Side
 import io
@@ -1547,7 +1547,9 @@ display_columns = [
 def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     output = io.BytesIO()
 
-    # Helper: enforce display columns for individual sheets
+    # -----------------------------
+    # Prepare individual sheets
+    # -----------------------------
     def prepare_df(df):
         df = df.copy()
         for col in display_columns:
@@ -1555,9 +1557,6 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
                 df[col] = ""
         return df[display_columns].fillna("")
 
-    # -----------------------------
-    # Individual sheets (bar chart drilldowns)
-    # -----------------------------
     all_data = {}
     for name, df in drilldown_dict.items():
         if not df.empty:
@@ -1566,12 +1565,12 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         all_data["CV8"] = prepare_df(cv8_df)
 
     # -----------------------------
-    # Combined_Data: all filtered information
+    # Combined_Data: all filtered info
     # -----------------------------
     combined_df = filtered_df.copy()
 
     # -----------------------------
-    # Build Project Summary using Combined_Data's Total & Original columns
+    # Build Project Summary
     # -----------------------------
     summary_rows = []
     if not combined_df.empty:
@@ -1580,7 +1579,7 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         for project in all_projects:
             row = {"project": project}
 
-            # Per-category values (for chart purposes)
+            # Per-category values for chart purposes
             for name, df in all_data.items():
                 proj_df = df[df['project'] == project]
                 if name in ["CV31", "CV8"]:
@@ -1590,7 +1589,7 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
                         if 'qsub' in proj_df.columns else 0
                 row[name] = val
 
-            # Sum Total & Original from Combined_Data for this project
+            # Sum Total & Original from Combined_Data
             proj_combined = combined_df[combined_df['project'] == project]
             row["total"] = proj_combined['total'].sum() if 'total' in proj_combined.columns else 0
             row["orig"] = proj_combined['orig'].sum() if 'orig' in proj_combined.columns else 0
@@ -1602,117 +1601,129 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         summary_df = pd.DataFrame()
 
     # -----------------------------
-    # Write Excel
+    # Openpyxl Workbook
     # -----------------------------
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    wb = Workbook()
+    wb.remove(wb.active)  # remove default sheet
 
-        # 1️⃣ Project Summary
-        if not summary_df.empty:
-            summary_df.to_excel(writer, sheet_name="Project_Summary", index=False)
-
-        # 2️⃣ Individual sheets - only display_columns
-        for name, df in all_data.items():
-            sheet_name = sanitize_sheet_name(name)
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
-
-        # 3️⃣ Combined Data sheet - keep all columns (including Total & Original)
-        combined_df = prepare_df(filtered_df) if not filtered_df.empty else pd.DataFrame()
-        if not combined_df.empty:
-            combined_df.to_excel(writer, sheet_name="Combined_Data", index=False)
-
-
-    # -----------------------
-    # ---- Formatting + Images ----
-    # -----------------------
-    from openpyxl import load_workbook
-    from openpyxl.styles import Font, PatternFill, Border, Side
-    from openpyxl.utils import get_column_letter
-    from openpyxl.drawing.image import Image as XLImage
-
+    # Formatting
     IMG_HEIGHT = 120
     IMG_WIDTH_SMALL = 120
     IMG_WIDTH_LARGE = IMG_WIDTH_SMALL * 3
 
     header_font = Font(bold=True, size=16)
     header_fill = PatternFill(start_color="00CCFF", end_color="00CCFF", fill_type="solid")
-
     thin_side = Side(style="thin")
     medium_side = Side(style="medium")
     thick_side = Side(style="thick")
-
     light_grey_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
     white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     red_font = Font(color="FF0000")
     green_font = Font(color="00AA00")
     black_font = Font(color="000000")
 
-    wb = load_workbook(output)
-    for ws in wb.worksheets:
-        ws.row_dimensions[1].height = 90
-
-        # Images
-        img1 = XLImage("Images/GaeltecImage.png")
-        img1.width = IMG_WIDTH_SMALL
-        img1.height = IMG_HEIGHT
-        img1.anchor = "B1"
-
-        img2 = XLImage("Images/SPEN.png")
-        img2.width = IMG_WIDTH_LARGE
-        img2.height = IMG_HEIGHT
-        img2.anchor = "A1"
-
-        ws.add_image(img1)
-        ws.add_image(img2)
-
-        max_col = ws.max_column
+    # -----------------------------
+    # 1️⃣ Project Summary sheet
+    # -----------------------------
+    if not summary_df.empty:
+        ws = wb.create_sheet("Project_Summary")
+        ws.append(summary_df.columns.tolist())
+        for idx, row in summary_df.iterrows():
+            ws.append(row.tolist())
 
         # Header formatting
-        for col_idx, cell in enumerate(ws[2], start=1):
+        for col_idx, cell in enumerate(ws[1], start=1):
             cell.font = header_font
             cell.fill = header_fill
-            ws.column_dimensions[get_column_letter(col_idx)].width = 60 if col_idx == 1 else 20
+            ws.column_dimensions[get_column_letter(col_idx)].width = 20
             cell.border = Border(
                 left=thick_side if col_idx == 1 else medium_side,
-                right=thick_side if col_idx == max_col else medium_side,
+                right=thick_side if col_idx == ws.max_column else medium_side,
                 top=thick_side,
                 bottom=thick_side
             )
 
-        # Identify QCVI column
-        qcvi_col_idx = None
-        for col_idx, cell in enumerate(ws[2], start=1):
-            if cell.value and str(cell.value).lower() == "qcvi":
-                qcvi_col_idx = col_idx
-                break
-
-        # Row formatting
-        for row_idx in range(3, ws.max_row + 1):
-            fill = light_grey_fill if row_idx % 2 == 1 else white_fill
+        # Row alternating colors
+        for row_idx in range(2, ws.max_row + 1):
+            fill = light_grey_fill if row_idx % 2 == 0 else white_fill
             for col_idx in range(1, ws.max_column + 1):
-                cell = ws.cell(row=row_idx, column=col_idx)
-                cell.fill = fill
-                cell.border = Border(
-                    left=thin_side,
-                    right=thin_side,
-                    top=thin_side,
-                    bottom=thin_side
-                )
+                ws.cell(row=row_idx, column=col_idx).fill = fill
 
-                if qcvi_col_idx and col_idx == qcvi_col_idx and cell.value not in ("", None):
-                    try:
-                        val = float(cell.value)
-                        if val > 0:
-                            cell.font = green_font
-                        elif val < 0:
-                            cell.font = red_font
-                        else:
-                            cell.font = black_font
-                    except ValueError:
-                        cell.font = black_font
+        # Optional images
+        try:
+            img1 = XLImage("Images/GaeltecImage.png")
+            img1.width = IMG_WIDTH_SMALL
+            img1.height = IMG_HEIGHT
+            img1.anchor = "B1"
+            ws.add_image(img1)
 
+            img2 = XLImage("Images/SPEN.png")
+            img2.width = IMG_WIDTH_LARGE
+            img2.height = IMG_HEIGHT
+            img2.anchor = "A1"
+            ws.add_image(img2)
+        except Exception:
+            pass  # ignore if images missing
+
+    # -----------------------------
+    # 2️⃣ Individual Sheets
+    # -----------------------------
+    for name, df in all_data.items():
+        ws = wb.create_sheet(sanitize_sheet_name(name))
+        ws.append(df.columns.tolist())
+        for _, row in df.iterrows():
+            ws.append(row.tolist())
+
+        # Header formatting
+        for col_idx, cell in enumerate(ws[1], start=1):
+            cell.font = header_font
+            cell.fill = header_fill
+            ws.column_dimensions[get_column_letter(col_idx)].width = 20
+            cell.border = Border(
+                left=thick_side if col_idx == 1 else medium_side,
+                right=thick_side if col_idx == ws.max_column else medium_side,
+                top=thick_side,
+                bottom=thick_side
+            )
+
+        # Row alternating colors
+        for row_idx in range(2, ws.max_row + 1):
+            fill = light_grey_fill if row_idx % 2 == 0 else white_fill
+            for col_idx in range(1, ws.max_column + 1):
+                ws.cell(row=row_idx, column=col_idx).fill = fill
+
+    # -----------------------------
+    # 3️⃣ Combined_Data Sheet
+    # -----------------------------
+    if not combined_df.empty:
+        ws = wb.create_sheet("Combined_Data")
+        ws.append(combined_df.columns.tolist())
+        for _, row in combined_df.iterrows():
+            ws.append(row.tolist())
+
+        # Header formatting
+        for col_idx, cell in enumerate(ws[1], start=1):
+            cell.font = header_font
+            cell.fill = header_fill
+            ws.column_dimensions[get_column_letter(col_idx)].width = 20
+            cell.border = Border(
+                left=thick_side if col_idx == 1 else medium_side,
+                right=thick_side if col_idx == ws.max_column else medium_side,
+                top=thick_side,
+                bottom=thick_side
+            )
+
+        # Row alternating colors
+        for row_idx in range(2, ws.max_row + 1):
+            fill = light_grey_fill if row_idx % 2 == 0 else white_fill
+            for col_idx in range(1, ws.max_column + 1):
+                ws.cell(row=row_idx, column=col_idx).fill = fill
+
+    # Save to BytesIO
     wb.save(output)
     output.seek(0)
     return output.getvalue()
+
 
 # -------------------------------
 # DOWNLOAD BUTTON
