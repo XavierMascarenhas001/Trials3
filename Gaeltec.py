@@ -1227,7 +1227,7 @@ for cat_name, keys, y_label in categories:
             sub_df[col] = sub_df[col].fillna("Missing")
 
     # --- Clean numeric columns ---
-    sub_df['qvci_clean'] = pd.to_numeric(sub_df['qvci'] if 'qvci' in sub_df.columns else pd.Series(0, index=sub_df.index), errors='coerce').fillna(0)
+    sub_df['qcvi_clean'] = pd.to_numeric(sub_df['qcvi'] if 'qcvi' in sub_df.columns else pd.Series(0, index=sub_df.index), errors='coerce').fillna(0)
     sub_df['qsub_clean'] = pd.to_numeric(sub_df['qsub'] if 'qsub' in sub_df.columns else pd.Series(0, index=sub_df.index), errors='coerce').fillna(0)
     sub_df["multiplier"] = 1
     sub_df.loc[sub_df["item"].isin(erect_h_items), "multiplier"] = 2
@@ -1239,12 +1239,12 @@ for cat_name, keys, y_label in categories:
         sub_df_unique_poles = sub_df.drop_duplicates(subset=['pole'])
         bar_data = sub_df_unique_poles.groupby('mapped').agg(
             Total=('pole', 'count'),
-            Variation=('qvci_clean', 'sum')
+            Variation=('qcvi_clean', 'sum')
         ).reset_index()
     else:
         bar_data = sub_df.groupby('mapped').agg(
             Total=('adj_value', 'sum'),
-            Variation=('qvci_clean', 'sum')
+            Variation=('qcvi_clean', 'sum')
         ).reset_index()
 
     bar_data.rename(columns={'mapped':'Mapped'}, inplace=True)
@@ -1318,7 +1318,7 @@ for cat_name, keys, y_label in categories:
             selected_rows.columns = selected_rows.columns.str.strip().str.lower()
             display_columns = [
                 'shire', 'project', 'segmentcode', 'segmentdesc', 'comment',
-                'pole', 'qty', 'qvci', 'qsub', 'plan1', 'done', 'item'
+                'pole', 'qty', 'qcvi', 'qsub', 'plan1', 'done', 'item'
             ]
             display_columns = [c for c in display_columns if c in selected_rows.columns]
             display_df = selected_rows[display_columns].copy()
@@ -1327,6 +1327,7 @@ for cat_name, keys, y_label in categories:
                 'segmentcode':'Circuit',
                 'segmentdesc': 'Segment',
                 'qty': 'Quantity',
+                'qcvi':'Variation',
                 'qsub': 'Quantity Used'
             }, inplace=True)
             st.write(f"**Total records:** {len(display_df)}")
