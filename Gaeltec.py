@@ -1239,19 +1239,42 @@ for cat_name, keys, y_label in categories:
     sub_df.loc[sub_df["item"].isin(recover_h_items), "multiplier"] = 2
     sub_df["adj_value"] = sub_df["qsub_clean"] * sub_df["multiplier"]
 
-    # --- Aggregate ---
+
     if cat_name == "CV31":
-        sub_df_unique_poles = sub_df.drop_duplicates(subset=['pole'])
+        # --- Collect CV7 items ---
+        cv7_items = set().union(
+            *[cat.keys() for cat in [CV7_erect, CV7_erect_H, CV7_erect_lv, CV7_recover] if cat]
+        )
+
+        # --- Get poles used in CV7 ---
+        cv7_poles = sub_df.loc[
+            sub_df['item'].isin(cv7_items), 'pole'
+        ].dropna().unique()
+
+        # --- Exclude CV7 poles from CV31 ---
+        cv31_filtered = sub_df.loc[
+            (~sub_df['pole'].isin(cv7_poles)) &
+            (sub_df['pole'].notna())
+        ].copy()
+
+        # --- Keep only unique poles ---
+        sub_df_unique_poles = cv31_filtered.drop_duplicates(subset=['pole'])
+
+        # --- Aggregate ---
         bar_data = sub_df_unique_poles.groupby('mapped').agg(
             Total=('pole', 'count'),
             Variation=('qcvi_clean', 'sum')
         ).reset_index()
-        drilldown_dict[cat_name] = sub_df_unique_poles.copy()  # match bar chart
+
+        # --- Drilldown matches filtered unique poles ---
+        drilldown_dict[cat_name] = sub_df_unique_poles.copy()
+
     else:
         bar_data = sub_df.groupby('mapped').agg(
             Total=('adj_value', 'sum'),
             Variation=('qcvi_clean', 'sum')
         ).reset_index()
+
         drilldown_dict[cat_name] = sub_df.copy()
 
     bar_data.rename(columns={'mapped':'Mapped'}, inplace=True)
