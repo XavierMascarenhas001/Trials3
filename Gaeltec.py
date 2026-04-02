@@ -1544,13 +1544,10 @@ display_columns = [
     'shire', 'project', 'segmentcode', 'segmentdesc', 'comment',
     'pole', 'qty', 'qcvi', 'qsub', 'plan1', 'done', 'item','total','orig'
 ]
-
 def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     output = io.BytesIO()
 
-    # -----------------------------
     # Helper: enforce display columns for individual sheets
-    # -----------------------------
     def prepare_df(df):
         df = df.copy()
         for col in display_columns:
@@ -1559,7 +1556,7 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
         return df[display_columns].fillna("")
 
     # -----------------------------
-    # Combine all bar-chart datasets for individual sheets
+    # Individual sheets (bar chart data)
     # -----------------------------
     all_data = {}
     for name, df in drilldown_dict.items():
@@ -1574,11 +1571,11 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
     combined_df = filtered_df.copy()
 
     # -----------------------------
-    # Build Project Summary using Combined_Data totals
+    # Build Project Summary using Combined_Data's Total & Original columns
     # -----------------------------
     summary_rows = []
-    if not filtered_df.empty:
-        all_projects = filtered_df['project'].dropna().unique()
+    if not combined_df.empty:
+        all_projects = combined_df['project'].dropna().unique()
 
         for project in all_projects:
             row = {"project": project}
@@ -1593,12 +1590,10 @@ def generate_excel_export(display_columns, drilldown_dict, cv8_df, filtered_df):
                         if 'qsub' in proj_df.columns else 0
                 row[name] = val
 
-            # Total / Original from full Combined_Data
+            # Sum Total & Original from Combined_Data for this project
             proj_combined = combined_df[combined_df['project'] == project]
-            row["Total"] = pd.to_numeric(proj_combined['Total'], errors='coerce').fillna(0).sum() \
-                if 'Total' in proj_combined.columns else 0
-            row["Original"] = pd.to_numeric(proj_combined['Original'], errors='coerce').fillna(0).sum() \
-                if 'Original' in proj_combined.columns else 0
+            row["Total"] = proj_combined['Total'].sum() if 'Total' in proj_combined.columns else 0
+            row["Original"] = proj_combined['Original'].sum() if 'Original' in proj_combined.columns else 0
 
             summary_rows.append(row)
 
