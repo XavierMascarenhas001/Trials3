@@ -1011,13 +1011,18 @@ selected_team, filtered_df = multiselect_filter(filtered_df, 'team_name', "Selec
 # --- Standardize Date Column ---
 # -------------------------------
 # Convert any existing datetime column to just date (no hours/minutes/seconds)
-if 'datetouse_dt' in filtered_df.columns:
-    filtered_df['datetouse_dt'] = pd.to_datetime(filtered_df['datetouse'], errors='coerce').dt.normalize()
-    # For display purposes in tables, charts, etc.
-    filtered_df['datetouse_display'] = filtered_df['datetouse_dt'].dt.strftime("%d/%m/%Y")
-else:
-    filtered_df['datetouse_dt'] = pd.NaT
-    filtered_df['datetouse_display'] = "Missing"
+# Use the already prepared base_df (which respects the radio button)
+filtered_df = base_df.copy()
+
+# Ensure datetouse_dt stays datetime (safety check)
+filtered_df['datetouse_dt'] = pd.to_datetime(
+    filtered_df['datetouse_dt'], errors='coerce'
+).dt.normalize()
+
+# Create display column ONLY (do not overwrite datetime)
+filtered_df['datetouse_display'] = filtered_df['datetouse_dt'] \
+    .dt.strftime("%d/%m/%Y") \
+    .fillna("Missing")
 
 
 filter_type = st.sidebar.selectbox(
@@ -1226,10 +1231,11 @@ for cat_name, keys, y_label in categories:
     sub_df = filtered_df[mask]
 
     # --- Normalize dates in sub_df ---
-    for col in ['datetouse_dt', 'plan1', 'done']:
+    for col in ['datetouse_dt', 'plan1_display', 'done_display']:
         if col in sub_df.columns:
-            sub_df[col] = pd.to_datetime(sub_df[col], errors='coerce').dt.strftime("%d/%m/%Y")
-            sub_df[col] = sub_df[col].fillna("Missing")
+            sub_df[col + "_display"] = pd.to_datetime(sub_df[col], errors='coerce') \
+                .dt.strftime("%d/%m/%Y") \
+                .fillna("Missing")
 
     # --- Clean numeric columns ---
     sub_df['qcvi_clean'] = pd.to_numeric(sub_df['qcvi'] if 'qcvi' in sub_df.columns else pd.Series(0, index=sub_df.index), errors='coerce').fillna(0)
